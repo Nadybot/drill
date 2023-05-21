@@ -28,7 +28,7 @@ use tokio_websockets::Message as WebsocketMessage;
 use uuid::Uuid;
 
 const DEFAULT_PORT: u16 = 7777;
-const WEBSOCKET_SUBDOMAIN: &str = "localhost";
+const WEBSOCKET_SUBDOMAIN: &str = "go";
 
 const MISSING_HOST_HEADER: &[u8] = b"HTTP/1.1 400\r\nContent-Length: 19\r\n\r\nMissing Host header";
 const FAILED_TO_PARSE: &[u8] = b"HTTP/1.1 400\r\nContent-Length: 23\r\n\r\nFailed to parse request";
