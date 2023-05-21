@@ -461,6 +461,8 @@ async fn handle_client(
         }
     }
 
+    log::info!("Cleaning up client {addr}");
+
     if !actual_subdomain.is_empty() {
         state.unregister_event_listener(&actual_subdomain);
     }
@@ -542,6 +544,11 @@ async fn ao_bot_inner(
                                 send_tag: String::from("\u{0}"),
                             },
                         };
+
+                        log::info!(
+                            "Client lookup complete, sending in-game tell to {}",
+                            c.character_name
+                        );
 
                         sock.send(pack).await?;
                     }
