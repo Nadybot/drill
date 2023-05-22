@@ -600,7 +600,7 @@ async fn run() -> io::Result<()> {
 
     tokio::spawn(ao_bot(username, password, character.clone(), token_rx));
 
-    let domain = env::var("DOMAIN").unwrap_or_else(|_| String::from("nadybotters.org"));
+    let domain = env::var("DOMAIN").unwrap_or_else(|_| String::from("nadybotter.org"));
 
     let state = State {
         send_tokens: token_tx,
