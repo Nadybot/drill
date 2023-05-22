@@ -276,16 +276,19 @@ async fn handle_stream(state: State, mut stream: TcpStream, addr: SocketAddr) ->
             return Ok(());
         };
 
-        let mut buffer = [0; 4096];
-
         loop {
             tokio::select! {
-                res = stream.read(&mut buffer) => {
+                res = stream.read(&mut bytes) => {
                     if let Ok(n) = res {
+                        if n == 0 {
+                            let _ = sender.send(StreamEvent::Close { id: connection_id });
+                            break;
+                        }
+
                         if sender
                             .send(StreamEvent::Data {
                                 id: connection_id.clone(),
-                                data: buffer[..n].to_vec(),
+                                data: bytes[..n].to_vec(),
                             })
                             .is_err()
                         {
