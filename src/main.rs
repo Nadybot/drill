@@ -28,7 +28,7 @@ use tokio_websockets::Message as WebsocketMessage;
 use uuid::Uuid;
 
 const DEFAULT_PORT: u16 = 7777;
-const WEBSOCKET_SUBDOMAIN: &str = "go";
+const DEFAULT_WEBSOCKET_SUBDOMAIN: &str = "go";
 
 const MISSING_HOST_HEADER: &[u8] = b"HTTP/1.1 400\r\nContent-Length: 19\r\n\r\nMissing Host header";
 const FAILED_TO_PARSE: &[u8] = b"HTTP/1.1 400\r\nContent-Length: 23\r\n\r\nFailed to parse request";
@@ -160,6 +160,7 @@ struct State {
     event_senders: Arc<RwLock<HashMap<String, UnboundedSender<StreamEvent>>>>,
     domain: String,
     character: String,
+    websocket_subdomain: String,
 }
 
 impl State {
@@ -252,7 +253,7 @@ async fn handle_stream(state: State, mut stream: TcpStream, addr: SocketAddr) ->
 
     log::info!("{subdomain}");
 
-    if subdomain == WEBSOCKET_SUBDOMAIN {
+    if subdomain == state.websocket_subdomain {
         if let Err(e) = handle_client(state, stream, addr).await {
             log::error!("Error in websocket connection: {e}");
         };
@@ -602,11 +603,15 @@ async fn run() -> io::Result<()> {
 
     let domain = env::var("DOMAIN").unwrap_or_else(|_| String::from("nadybotter.org"));
 
+    let websocket_subdomain =
+        env::var("WEBSOCKET_SUBDOMAIN").unwrap_or_else(|_| DEFAULT_WEBSOCKET_SUBDOMAIN.to_string());
+
     let state = State {
         send_tokens: token_tx,
         event_senders: Arc::new(RwLock::new(HashMap::new())),
         domain,
         character,
+        websocket_subdomain,
     };
 
     let port = env::var("PORT")
