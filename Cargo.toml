@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "drill-proto",
+    "drill-client",
     "drill-server",
 ]
 

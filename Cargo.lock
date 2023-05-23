@@ -137,6 +137,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "drill-client"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "drill-proto",
+ "env_logger",
+ "futures-util",
+ "http",
+ "log",
+ "tokio",
+ "tokio-websockets",
+]
+
+[[package]]
 name = "drill-proto"
 version = "0.1.0"
 
@@ -901,12 +915,17 @@ checksum = "8d1df20f31f428a351ec353699a82aad49360090e8f6320ac0dacf5def4f1573"
 dependencies = [
  "base64",
  "bytes",
+ "fastrand",
  "futures-util",
  "http",
  "httparse",
+ "ring",
+ "rustls-webpki",
  "sha1_smol",
  "tokio",
+ "tokio-rustls 0.24.0",
  "tokio-util",
+ "webpki-roots 0.23.0",
 ]
 
 [[package]]

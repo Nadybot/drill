@@ -1,0 +1,16 @@
+[package]
+name = "drill-client"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4", default-features = false, features = ["derive", "help", "std", "usage"] }
+drill-proto = { path = "../drill-proto" }
+env_logger = { version = "0.10", default-features = false, features = ["humantime"] }
+futures-util = { version = "0.3", default-features = false }
+http = "0.2"
+log = "0.4"
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "time"] }
+tokio-websockets = { version = "0.3", default-features = false, features = ["client", "fastrand", "rustls-webpki-roots"] }
