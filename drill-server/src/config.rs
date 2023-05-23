@@ -34,6 +34,10 @@ pub struct Args {
     #[arg(long)]
     pub auth: AuthBackend,
 
+    /// Strategy to choose subdomains for clients.
+    #[arg(long)]
+    pub subdomain_strategy: SubdomainStrategy,
+
     /// For "private" authentication backend, path to file with
     /// whitespace-seperated tokens.
     #[arg(long)]
@@ -59,6 +63,14 @@ pub struct Args {
     /// Port to run on.
     #[arg(long, short)]
     pub port: u16,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum SubdomainStrategy {
+    #[cfg(feature = "ao")]
+    AoCharacter,
+    ClientChoice,
+    Random,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]

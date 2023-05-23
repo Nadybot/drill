@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use dashmap::DashSet;
+use dashmap::DashMap;
 use nadylib::{
     account::{AccountManager, AccountManagerHttpClient},
     models::{Channel, Message},
@@ -12,7 +12,10 @@ use tokio::{
     time::sleep,
 };
 
-use crate::config::AoCredentials;
+use crate::{
+    config::{AoCredentials, SubdomainStrategy},
+    util::random_subdomain,
+};
 
 const RETRY_INTERVAL: Duration = Duration::from_secs(10);
 
@@ -133,28 +136,37 @@ pub async fn ao_bot(credentials: AoCredentials, mut token_rx: UnboundedReceiver<
 
 #[derive(Debug)]
 pub struct AoAuthProvider {
-    valid_tokens: DashSet<String>,
+    // Mapping of token to character name
+    valid_tokens: DashMap<String, String>,
     tell_sender: UnboundedSender<TokenTell>,
 }
 
 impl AoAuthProvider {
     pub fn new(tell_sender: UnboundedSender<TokenTell>) -> Self {
         Self {
-            valid_tokens: DashSet::new(),
+            valid_tokens: DashMap::new(),
             tell_sender,
         }
     }
 
     /// TODO: Clean these up after a bit or when client disconnects...
     pub fn expect(&self, character: String, token: String) {
-        self.valid_tokens.insert(token.clone());
+        self.valid_tokens.insert(token.clone(), character.clone());
         let _ = self.tell_sender.send(TokenTell { character, token });
     }
 
-    pub fn verify(&self, token: &str, desired_subdomain: &str) -> Option<String> {
-        if self.valid_tokens.remove(token).is_some() {
-            // TODO: Make this configurable
-            Some(desired_subdomain.to_string())
+    pub fn verify(
+        &self,
+        token: &str,
+        desired_subdomain: &str,
+        strategy: SubdomainStrategy,
+    ) -> Option<String> {
+        if let Some((_, character_name)) = self.valid_tokens.remove(token) {
+            match strategy {
+                SubdomainStrategy::AoCharacter => Some(character_name),
+                SubdomainStrategy::ClientChoice => Some(desired_subdomain.to_string()),
+                SubdomainStrategy::Random => Some(random_subdomain()),
+            }
         } else {
             None
         }

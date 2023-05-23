@@ -2,6 +2,8 @@ use std::collections::HashSet;
 
 use drill_proto::AuthMode;
 
+use crate::{config::SubdomainStrategy, util::random_subdomain};
+
 #[cfg(feature = "ao")]
 pub mod ao;
 #[cfg(feature = "dynamic")]
@@ -42,15 +44,25 @@ impl AuthProvider {
         }
     }
 
-    pub async fn verify(&self, token: &str, desired_subdomain: &str) -> Option<String> {
+    pub async fn verify(
+        &self,
+        token: &str,
+        desired_subdomain: &str,
+        strategy: SubdomainStrategy,
+    ) -> Option<String> {
         match self {
             #[cfg(feature = "ao")]
-            Self::Ao(ao) => ao.verify(token, desired_subdomain),
-            // TODO: Make this configurable
-            Self::Anonymous => Some(desired_subdomain.to_string()),
+            Self::Ao(ao) => ao.verify(token, desired_subdomain, strategy),
+            Self::Anonymous => match strategy {
+                SubdomainStrategy::ClientChoice => Some(desired_subdomain.to_string()),
+                _ => Some(random_subdomain()),
+            },
             Self::Private(set) => {
                 if set.contains(token) {
-                    Some(desired_subdomain.to_string())
+                    match strategy {
+                        SubdomainStrategy::ClientChoice => Some(desired_subdomain.to_string()),
+                        _ => Some(random_subdomain()),
+                    }
                 } else {
                     None
                 }

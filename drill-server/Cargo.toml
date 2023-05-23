@@ -10,6 +10,7 @@ clap = { version = "4", default-features = false, features = ["derive", "help", 
 dashmap = "5.4"
 drill-proto = { path = "../drill-proto" }
 env_logger = { version = "0.10", default-features = false, features = ["humantime"] }
+fastrand = "1.9"
 futures-util = { version = "0.3", default-features = false }
 httparse = "1.8"
 log = "0.4"

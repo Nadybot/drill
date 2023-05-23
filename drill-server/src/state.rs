@@ -83,7 +83,9 @@ impl State {
         subdomain: String,
         sender: UnboundedSender<StreamEvent>,
     ) -> bool {
-        if self.event_senders.len() >= self.config.max_clients {
+        if self.event_senders.len() >= self.config.max_clients
+            || self.event_senders.contains_key(&subdomain)
+        {
             false
         } else {
             self.event_senders.insert(subdomain, sender);

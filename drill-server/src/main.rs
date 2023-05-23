@@ -260,8 +260,10 @@ async fn handle_client(
                         token,
                         desired_subdomain,
                     } if AuthState::AwaitingToken == auth_state => {
-                        if let Some(subdomain) =
-                            state.auth_provider.verify(token, desired_subdomain).await
+                        if let Some(subdomain) = state
+                            .auth_provider
+                            .verify(token, desired_subdomain, state.config.subdomain_strategy)
+                            .await
                         {
                             log::info!("{addr} has authenticated, wanted {desired_subdomain}, got {subdomain}");
 
@@ -273,7 +275,7 @@ async fn handle_client(
                             let (event_tx, event_rx) = unbounded_channel();
 
                             if !state.register_event_listener(actual_subdomain.clone(), event_tx) {
-                                log::warn!("Rejecting {addr} due to capacity limit reached");
+                                log::warn!("Rejecting {addr} due to capacity limit reached or subdomain in use");
                                 let _ = ws
                                     .send(WebsocketMessage::binary(
                                         Event::out_of_capacity().serialize(),
