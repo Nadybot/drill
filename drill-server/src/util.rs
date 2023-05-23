@@ -7,5 +7,8 @@ pub fn random_token() -> String {
 }
 
 pub fn random_subdomain() -> String {
-    repeat_with(fastrand::alphanumeric).take(10).collect()
+    repeat_with(fastrand::alphanumeric)
+        .take(10)
+        .collect::<String>()
+        .to_lowercase()
 }

@@ -84,7 +84,8 @@ pub enum Event<'a> {
 }
 
 impl<'a> Event<'a> {
-    #[must_use] pub fn hello(auth_mode: AuthMode, description: &'a str) -> Self {
+    #[must_use]
+    pub fn hello(auth_mode: AuthMode, description: &'a str) -> Self {
         Self::Hello {
             proto_version: IMPLEMENTED_PROTO_VERSION,
             auth_mode,
@@ -92,42 +93,51 @@ impl<'a> Event<'a> {
         }
     }
 
-    #[must_use] pub fn ao_auth(character_name: &'a str) -> Self {
+    #[must_use]
+    pub fn ao_auth(character_name: &'a str) -> Self {
         Self::AoAuth { character_name }
     }
 
-    #[must_use] pub fn token_in_ao_tell(sender: &'a str) -> Self {
+    #[must_use]
+    pub fn token_in_ao_tell(sender: &'a str) -> Self {
         Self::TokenInAoTell { sender }
     }
 
-    #[must_use] pub fn present_token(token: &'a str, desired_subdomain: &'a str) -> Self {
+    #[must_use]
+    pub fn present_token(token: &'a str, desired_subdomain: &'a str) -> Self {
         Self::PresentToken {
             token,
             desired_subdomain,
         }
     }
 
-    #[must_use] pub fn lets_go(public_url: &'a str) -> Self {
+    #[must_use]
+    pub fn lets_go(public_url: &'a str) -> Self {
         Self::LetsGo { public_url }
     }
 
-    #[must_use] pub fn auth_failed() -> Self {
+    #[must_use]
+    pub fn auth_failed() -> Self {
         Self::AuthFailed
     }
 
-    #[must_use] pub fn out_of_capacity() -> Self {
+    #[must_use]
+    pub fn out_of_capacity() -> Self {
         Self::OutOfCapacity
     }
 
-    #[must_use] pub fn disallowed_packet() -> Self {
+    #[must_use]
+    pub fn disallowed_packet() -> Self {
         Self::DisallowedPacket
     }
 
-    #[must_use] pub fn data(id: &'a str, data: &'a [u8]) -> Self {
+    #[must_use]
+    pub fn data(id: &'a str, data: &'a [u8]) -> Self {
         Self::Data { id, data }
     }
 
-    #[must_use] pub fn closed(id: &'a str) -> Self {
+    #[must_use]
+    pub fn closed(id: &'a str) -> Self {
         Self::Closed { id }
     }
 }

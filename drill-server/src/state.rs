@@ -52,7 +52,10 @@ impl State {
                     exit(1);
                 };
 
-                let tokens: HashSet<_> = tokens.split_whitespace().map(std::string::ToString::to_string).collect();
+                let tokens: HashSet<_> = tokens
+                    .split_whitespace()
+                    .map(std::string::ToString::to_string)
+                    .collect();
 
                 AuthProvider::Private(tokens)
             }
