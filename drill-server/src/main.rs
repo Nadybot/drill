@@ -71,9 +71,10 @@ async fn handle_stream(state: State, mut stream: TcpStream, mut ip: IpAddr) -> i
                     .find(|header| header.name.eq_ignore_ascii_case("x-forwarded-for"));
 
                 if let Some(forwarded_for) = forwarded_for {
-                    if let Some(forwarded_ip) = std::str::from_utf8(forwarded_for.value)
-                        .ok()
-                        .and_then(|f| IpAddr::from_str(f).ok())
+                    if let Some(forwarded_ip) =
+                        std::str::from_utf8(forwarded_for.value).ok().and_then(|f| {
+                            IpAddr::from_str(f.split(',').next().unwrap_or_default()).ok()
+                        })
                     {
                         ip = forwarded_ip;
                     };
