@@ -40,4 +40,4 @@ Obviously, `dynamic` auth ignores this setting.
 
 `$ drill-client -p 8080 -s subdomain -d mydomain.com`
 
-This will connect to the Drill instance at `mydomain.com`, attempt to claim `subdomain.mydomain.com` if possible and tunnel traffic to port 8080 locally.
+This will connect to the Drill instance at `mydomain.com`, attempt to claim `subdomain.mydomain.com` if possible and tunnel traffic to port 8080 locally. If the server uses token authentication (aka isn't using anonymous auth), a token can be pased with `-t`/`--token`.
