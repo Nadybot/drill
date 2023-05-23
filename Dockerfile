@@ -1,4 +1,7 @@
+ARG FEATURES "dynamic"
+
 FROM docker.io/library/alpine:edge AS builder
+ARG FEATURES
 ENV RUST_TARGET "x86_64-unknown-linux-musl"
 ENV RUSTFLAGS "-Lnative=/usr/lib -Z mir-opt-level=3"
 
@@ -29,7 +32,7 @@ RUN mkdir drill-proto/src/ && \
     echo 'fn main() {}' > ./drill-server/src/main.rs && \
     echo 'fn main() {}' > ./drill-client/src/main.rs && \
     source $HOME/.cargo/env && \
-    cargo build --release --features dynamic --target="$RUST_TARGET"
+    cargo build --release --features "$FEATURES" --target="$RUST_TARGET"
 
 RUN rm -f target/$RUST_TARGET/release/deps/drill* && \
     rm -f target/$RUST_TARGET/release/deps/libdrill*
@@ -39,7 +42,7 @@ COPY ./drill-server/src ./drill-server/src
 COPY ./drill-client/src ./drill-client/src
 
 RUN source $HOME/.cargo/env && \
-    cargo build --release --features dynamic --target="$RUST_TARGET" && \
+    cargo build --release --features "$FEATURES" --target="$RUST_TARGET" && \
     cp target/$RUST_TARGET/release/drill-server /drill-server && \
     strip /drill-server
 

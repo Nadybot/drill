@@ -13,6 +13,7 @@ env_logger = { version = "0.10", default-features = false, features = ["humantim
 fastrand = "1.9"
 futures-util = { version = "0.3", default-features = false }
 httparse = "1.8"
+libc = "0.2"
 log = "0.4"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "time"] }
 tokio-websockets = { version = "0.3", default-features = false, features = ["server", "sha1_smol"] }

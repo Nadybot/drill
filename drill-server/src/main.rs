@@ -12,6 +12,7 @@ use config::Args;
 use drill_proto::{AuthMode, Event};
 use futures_util::SinkExt;
 use httparse::Status;
+use libc::{c_int, sighandler_t, signal, SIGINT, SIGTERM};
 use state::State;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -388,10 +389,21 @@ async fn run(args: Args) -> io::Result<()> {
     }
 }
 
+pub extern "C" fn handler(_: c_int) {
+    std::process::exit(0);
+}
+
+unsafe fn set_os_handlers() {
+    signal(SIGINT, handler as extern "C" fn(_) as sighandler_t);
+    signal(SIGTERM, handler as extern "C" fn(_) as sighandler_t);
+}
+
 fn main() {
     let args = Args::parse();
 
     env_logger::builder().filter_level(args.log_level).init();
+
+    unsafe { set_os_handlers() };
 
     if let Err(e) = runtime::Builder::new_multi_thread()
         .enable_all()
