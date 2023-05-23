@@ -66,7 +66,7 @@ impl AuthProvider {
                     None
                 }
             }
-            #[cfg(feature = "ao")]
+            #[cfg(feature = "dynamic")]
             Self::Dynamic(dynamic) => dynamic.verify(token, desired_subdomain).await,
         }
     }
