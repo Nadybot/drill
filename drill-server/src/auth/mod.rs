@@ -19,9 +19,8 @@ pub enum AuthState {
 impl From<AuthMode> for AuthState {
     fn from(value: AuthMode) -> Self {
         match value {
-            AuthMode::Anonymous => Self::AwaitingToken,
+            AuthMode::Anonymous | AuthMode::StaticToken => Self::AwaitingToken,
             AuthMode::AoTell => Self::AwaitingAoAuth,
-            AuthMode::StaticToken => Self::AwaitingToken,
         }
     }
 }

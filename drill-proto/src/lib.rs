@@ -84,7 +84,7 @@ pub enum Event<'a> {
 }
 
 impl<'a> Event<'a> {
-    pub fn hello(auth_mode: AuthMode, description: &'a str) -> Self {
+    #[must_use] pub fn hello(auth_mode: AuthMode, description: &'a str) -> Self {
         Self::Hello {
             proto_version: IMPLEMENTED_PROTO_VERSION,
             auth_mode,
@@ -92,42 +92,42 @@ impl<'a> Event<'a> {
         }
     }
 
-    pub fn ao_auth(character_name: &'a str) -> Self {
+    #[must_use] pub fn ao_auth(character_name: &'a str) -> Self {
         Self::AoAuth { character_name }
     }
 
-    pub fn token_in_ao_tell(sender: &'a str) -> Self {
+    #[must_use] pub fn token_in_ao_tell(sender: &'a str) -> Self {
         Self::TokenInAoTell { sender }
     }
 
-    pub fn present_token(token: &'a str, desired_subdomain: &'a str) -> Self {
+    #[must_use] pub fn present_token(token: &'a str, desired_subdomain: &'a str) -> Self {
         Self::PresentToken {
             token,
             desired_subdomain,
         }
     }
 
-    pub fn lets_go(public_url: &'a str) -> Self {
+    #[must_use] pub fn lets_go(public_url: &'a str) -> Self {
         Self::LetsGo { public_url }
     }
 
-    pub fn auth_failed() -> Self {
+    #[must_use] pub fn auth_failed() -> Self {
         Self::AuthFailed
     }
 
-    pub fn out_of_capacity() -> Self {
+    #[must_use] pub fn out_of_capacity() -> Self {
         Self::OutOfCapacity
     }
 
-    pub fn disallowed_packet() -> Self {
+    #[must_use] pub fn disallowed_packet() -> Self {
         Self::DisallowedPacket
     }
 
-    pub fn data(id: &'a str, data: &'a [u8]) -> Self {
+    #[must_use] pub fn data(id: &'a str, data: &'a [u8]) -> Self {
         Self::Data { id, data }
     }
 
-    pub fn closed(id: &'a str) -> Self {
+    #[must_use] pub fn closed(id: &'a str) -> Self {
         Self::Closed { id }
     }
 }
@@ -150,18 +150,23 @@ fn try_parse_str<I: SliceIndex<[u8], Output = [u8]>>(
 }
 
 impl<'a> Event<'a> {
+    /// Parse an [`Event`] from a slice of bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ParseEventError`] if parsing an event failed.
     pub fn deserialize(input: &'a [u8]) -> Result<Self, ParseEventError> {
         let event_type = input.first().ok_or(ParseEventError::Eof)?;
 
-        match event_type {
-            &HELLO => {
-                let proto_version = u16::from_be_bytes(
+        match *event_type {
+            HELLO => {
+                let proto_version = u16::from_be_bytes(unsafe {
                     input
                         .get(1..3)
                         .ok_or(ParseEventError::Eof)?
                         .try_into()
-                        .unwrap(),
-                );
+                        .unwrap_unchecked()
+                });
 
                 if proto_version != IMPLEMENTED_PROTO_VERSION {
                     return Err(ParseEventError::ProtocolVersionMismatch);
@@ -176,17 +181,17 @@ impl<'a> Event<'a> {
                     description,
                 })
             }
-            &AO_AUTH => {
+            AO_AUTH => {
                 let character_name = try_parse_str(input, 1..)?;
 
                 Ok(Self::AoAuth { character_name })
             }
-            &TOKEN_IN_AO_TELL => {
+            TOKEN_IN_AO_TELL => {
                 let sender = try_parse_str(input, 1..)?;
 
                 Ok(Self::TokenInAoTell { sender })
             }
-            &PRESENT_TOKEN => {
+            PRESENT_TOKEN => {
                 let token = try_parse_str(input, 1..37)?;
                 let desired_subdomain = try_parse_str(input, 37..)?;
 
@@ -195,21 +200,21 @@ impl<'a> Event<'a> {
                     desired_subdomain,
                 })
             }
-            &LETS_GO => {
+            LETS_GO => {
                 let public_url = try_parse_str(input, 1..)?;
 
                 Ok(Self::LetsGo { public_url })
             }
-            &AUTH_FAILED => Ok(Self::AuthFailed),
-            &OUT_OF_CAPACITY => Ok(Self::OutOfCapacity),
-            &DISALLOWED_PACKET => Ok(Self::DisallowedPacket),
-            &DATA => {
+            AUTH_FAILED => Ok(Self::AuthFailed),
+            OUT_OF_CAPACITY => Ok(Self::OutOfCapacity),
+            DISALLOWED_PACKET => Ok(Self::DisallowedPacket),
+            DATA => {
                 let id = try_parse_str(input, 1..37)?;
                 let data = input.get(37..).ok_or(ParseEventError::Eof)?;
 
                 Ok(Self::Data { id, data })
             }
-            &CLOSED => {
+            CLOSED => {
                 let id = try_parse_str(input, 1..37)?;
 
                 Ok(Self::Closed { id })
@@ -218,6 +223,7 @@ impl<'a> Event<'a> {
         }
     }
 
+    #[must_use]
     pub fn serialize(&self) -> Vec<u8> {
         match self {
             Self::Hello {

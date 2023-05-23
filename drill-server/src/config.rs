@@ -83,13 +83,13 @@ pub enum AuthBackend {
     Dynamic,
 }
 
-impl Into<AuthMode> for AuthBackend {
-    fn into(self) -> AuthMode {
-        match self {
+impl From<AuthBackend> for AuthMode {
+    fn from(val: AuthBackend) -> Self {
+        match val {
             #[cfg(feature = "ao")]
             Self::Ao => AuthMode::AoTell,
-            Self::Anonymous => AuthMode::Anonymous,
-            Self::Private => AuthMode::StaticToken,
+            AuthBackend::Anonymous => AuthMode::Anonymous,
+            AuthBackend::Private => AuthMode::StaticToken,
             #[cfg(feature = "dynamic")]
             Self::Dynamic => AuthMode::StaticToken,
         }

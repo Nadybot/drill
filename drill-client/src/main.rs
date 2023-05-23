@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter::repeat, net::SocketAddr, str::FromStr};
+use std::{collections::HashMap, net::SocketAddr, str::FromStr};
 
 use clap::Parser;
 use drill_proto::{AuthMode, Event};
@@ -59,7 +59,7 @@ async fn run(mut args: args::Args) -> Result<(), Error> {
 
     // Receive a Hello message
     let msg = ws.next().await.ok_or(Error::UnexpectedClose)??;
-    let hello = Event::deserialize(&msg.as_data())?;
+    let hello = Event::deserialize(msg.as_data())?;
 
     let token = match hello {
         Event::Hello {
@@ -75,7 +75,7 @@ async fn run(mut args: args::Args) -> Result<(), Error> {
                     log::error!("AoTell authentication is unsupported by this client");
                     return Ok(());
                 }
-                AuthMode::Anonymous => args.token.unwrap_or_else(|| repeat("A").take(36).collect()),
+                AuthMode::Anonymous => args.token.unwrap_or_else(|| "A".repeat(36)),
                 AuthMode::StaticToken => {
                     if let Some(token) = args.token {
                         token
@@ -126,19 +126,17 @@ async fn run(mut args: args::Args) -> Result<(), Error> {
                                 connections.remove(id);
                                 ws.send(Message::binary(Event::closed(id).serialize())).await?;
                             };
-                        } else {
-                            if let Ok(mut stream) = TcpStream::connect(tcp_addr).await {
-                                if stream.write_all(data).await.is_err() {
-                                    ws.send(Message::binary(Event::closed(id).serialize())).await?;
-                                } else {
-                                    let (read, write) = stream.into_split();
-                                    connections.insert(id.to_string(), write);
-                                    tokio::spawn(proxy_read(read, id.to_string(), msg_tx.clone()));
-                                }
-                            } else {
-                                ws.send(Message::binary(Event::data(id, GATEWAY_ERROR).serialize())).await?;
+                        } else if let Ok(mut stream) = TcpStream::connect(tcp_addr).await {
+                            if stream.write_all(data).await.is_err() {
                                 ws.send(Message::binary(Event::closed(id).serialize())).await?;
-                            };
+                            } else {
+                                let (read, write) = stream.into_split();
+                                connections.insert(id.to_string(), write);
+                                tokio::spawn(proxy_read(read, id.to_string(), msg_tx.clone()));
+                            }
+                        } else {
+                            ws.send(Message::binary(Event::data(id, GATEWAY_ERROR).serialize())).await?;
+                            ws.send(Message::binary(Event::closed(id).serialize())).await?;
                         }
                     }
                     Event::Closed { id } => {
