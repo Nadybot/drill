@@ -87,11 +87,11 @@ impl From<AuthBackend> for AuthMode {
     fn from(val: AuthBackend) -> Self {
         match val {
             #[cfg(feature = "ao")]
-            Self::Ao => AuthMode::AoTell,
+            AuthBackend::Ao => AuthMode::AoTell,
             AuthBackend::Anonymous => AuthMode::Anonymous,
             AuthBackend::Private => AuthMode::StaticToken,
             #[cfg(feature = "dynamic")]
-            Self::Dynamic => AuthMode::StaticToken,
+            AuthBackend::Dynamic => AuthMode::StaticToken,
         }
     }
 }

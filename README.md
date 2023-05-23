@@ -2,6 +2,13 @@
 
 Drill is a simple, no-bullshit HTTP tunnel that just works. It only needs a single port and expects to run behind a reverse proxy such as nginx.
 
+## Features
+
+- Tiny binaries
+- Concurrent and multi-threaded
+- Supports multiplexing
+- Websocket support
+
 ## Downloading
 
 Currently, we do not provide prebuilts. You will have to compile it from source yourself.
