@@ -1,4 +1,11 @@
-use std::{collections::HashMap, io, mem::MaybeUninit, net::SocketAddr, time::Duration};
+use std::{
+    collections::HashMap,
+    io,
+    mem::MaybeUninit,
+    net::{IpAddr, SocketAddr},
+    str::FromStr,
+    time::Duration,
+};
 
 use clap::Parser;
 use config::Args;
@@ -31,9 +38,7 @@ const HOST_NO_SUBDOMAIN: &[u8] =
     b"HTTP/1.1 400\r\nContent-Length: 28\r\n\r\nHost header has no subdomain";
 const NOT_FOUND: &[u8] = b"HTTP/1.1 404\r\nContent-Length: 0\r\n\r\n";
 
-async fn handle_stream(state: State, mut stream: TcpStream, addr: SocketAddr) -> io::Result<()> {
-    log::info!("New client connection from {addr}");
-
+async fn handle_stream(state: State, mut stream: TcpStream, mut ip: IpAddr) -> io::Result<()> {
     // The first thing sent by a client MUST be a HTTP request - either to the
     // websocket server at the "go" subdomain or to some other subdomain.
     // We will peek the data to see what the Host header is set to.
@@ -59,23 +64,39 @@ async fn handle_stream(state: State, mut stream: TcpStream, addr: SocketAddr) ->
                     .iter()
                     .find(|header| header.name.eq_ignore_ascii_case("host"));
 
+                let forwarded_for = req
+                    .headers
+                    .iter()
+                    .find(|header| header.name.eq_ignore_ascii_case("x-forwarded-for"));
+
+                if let Some(forwarded_for) = forwarded_for {
+                    if let Some(forwarded_ip) = std::str::from_utf8(forwarded_for.value)
+                        .ok()
+                        .and_then(|f| IpAddr::from_str(f).ok())
+                    {
+                        ip = forwarded_ip;
+                    };
+                }
+
+                log::debug!("New client connection from {ip}");
+
                 if let Some(host) = host {
                     if let Ok(host_str) = std::str::from_utf8(host.value) {
                         break host_str;
                     }
 
-                    log::error!("Client sent request with invalid UTF8 in host header");
+                    log::debug!("Client sent request with invalid UTF8 in host header");
                     stream.write_all(HOST_NOT_UTF8).await?;
                     return Ok(());
                 }
 
-                log::error!("Client sent request without host header");
+                log::debug!("Client sent request without host header");
                 stream.write_all(MISSING_HOST_HEADER).await?;
                 return Ok(());
             }
             Ok(Status::Partial) => {}
             Err(e) => {
-                log::error!("Failed to parse client request: {e}");
+                log::debug!("Failed to parse client request: {e}");
                 stream.write_all(FAILED_TO_PARSE).await?;
                 return Ok(());
             }
@@ -85,8 +106,8 @@ async fn handle_stream(state: State, mut stream: TcpStream, addr: SocketAddr) ->
     // Clients may connect either to a subdomain (i.e. require to be tunneled) or to
     // the websocket server.
     if host == state.config.websocket_host {
-        if let Err(e) = handle_client(state, stream, addr).await {
-            log::error!("Error in websocket connection: {e}");
+        if let Err(e) = handle_client(state, stream, ip).await {
+            log::debug!("Error in websocket connection: {e}");
         };
     } else {
         let Some((subdomain, _)) = host.split_once('.') else {
@@ -149,14 +170,14 @@ async fn handle_stream(state: State, mut stream: TcpStream, addr: SocketAddr) ->
 async fn handle_client(
     state: State,
     stream: TcpStream,
-    addr: SocketAddr,
+    ip: IpAddr,
 ) -> Result<(), tokio_websockets::Error> {
     let mut ws = tokio_websockets::ServerBuilder::new()
         .fail_fast_on_invalid_utf8(false)
         .accept(stream)
         .await?;
 
-    log::info!("Websocket connection with client from {addr} established");
+    log::info!("Websocket connection with client from {ip} established");
 
     let auth_mode: AuthMode = state.config.auth.into();
     let mut auth_state = AuthState::from(auth_mode);
@@ -213,7 +234,7 @@ async fn handle_client(
             }
             _ = sleep(Duration::from_secs(60)) => {
                 if i_am_waiting_for_pong {
-                    log::warn!("Did not receive a pong within 60 seconds, disconnecting client");
+                    log::warn!("Did not receive a pong within 60 seconds, disconnecting client at {ip}");
                     break;
                 }
 
@@ -237,7 +258,7 @@ async fn handle_client(
                 match evt {
                     #[cfg(feature = "ao")]
                     Event::AoAuth { character_name } if auth_state == AuthState::AwaitingAoAuth => {
-                        log::info!("{character_name} wants to authenticate with AO");
+                        log::debug!("{character_name} wants to authenticate with AO");
 
                         // Make botname -> Botname
                         let mut bot_name = character_name.to_string();
@@ -265,7 +286,7 @@ async fn handle_client(
                             .verify(token, desired_subdomain, state.config.subdomain_strategy)
                             .await
                         {
-                            log::info!("{addr} has authenticated, wanted {desired_subdomain}, got {subdomain}");
+                            log::info!("{ip} has authenticated, wanted {desired_subdomain}, got {subdomain}");
 
                             actual_subdomain = subdomain;
 
@@ -275,7 +296,7 @@ async fn handle_client(
                             let (event_tx, event_rx) = unbounded_channel();
 
                             if !state.register_event_listener(actual_subdomain.clone(), event_tx) {
-                                log::warn!("Rejecting {addr} due to capacity limit reached or subdomain in use");
+                                log::warn!("Rejecting {ip} due to capacity limit reached or subdomain in use");
                                 let _ = ws
                                     .send(WebsocketMessage::binary(
                                         Event::out_of_capacity().serialize(),
@@ -298,7 +319,7 @@ async fn handle_client(
                                 break;
                             };
                         } else {
-                            log::info!("{addr} has failed authentication");
+                            log::debug!("{ip} has failed authentication");
 
                             ws.send(WebsocketMessage::binary(Event::auth_failed().serialize()))
                                 .await?;
@@ -316,7 +337,7 @@ async fn handle_client(
                         }
                     }
                     _ => {
-                        log::error!("Received disallowed event from client at current auth stage");
+                        log::debug!("Received disallowed event from client at current auth stage");
                         let _ = ws
                             .send(WebsocketMessage::binary(
                                 Event::disallowed_packet().serialize(),
@@ -326,7 +347,7 @@ async fn handle_client(
                     }
                 }
             } else {
-                log::error!("Failed to deserialize event from websocket");
+                log::debug!("Failed to deserialize event from websocket");
                 let _ = ws
                     .send(WebsocketMessage::binary(
                         Event::disallowed_packet().serialize(),
@@ -337,7 +358,7 @@ async fn handle_client(
         }
     }
 
-    log::info!("Cleaning up client {addr}");
+    log::info!("Cleaning up client {ip}");
 
     if !actual_subdomain.is_empty() {
         state.unregister_event_listener(&actual_subdomain);
@@ -361,8 +382,9 @@ async fn run(args: Args) -> io::Result<()> {
 
     loop {
         let (stream, addr) = tcp_server.accept().await?;
+        let ip = addr.ip();
 
-        tokio::spawn(handle_stream(state.clone(), stream, addr));
+        tokio::spawn(handle_stream(state.clone(), stream, ip));
     }
 }
 
