@@ -195,6 +195,9 @@ async fn handle_client(
     .await?;
 
     loop {
+        let sleep = sleep(Duration::from_secs(15));
+        tokio::pin!(sleep);
+
         let msg = tokio::select! {
             res = ws.next() => {
                 match res {
@@ -233,11 +236,13 @@ async fn handle_client(
                     None => break,
                 }
             }
-            _ = sleep(Duration::from_secs(60)) => {
+            _ = &mut sleep => {
                 if i_am_waiting_for_pong {
                     log::warn!("Did not receive a pong within 60 seconds, disconnecting client at {ip}");
                     break;
                 }
+
+                log::trace!("Sending ping to websocket");
 
                 if ws.send(WebsocketMessage::ping("")).await.is_err() {
                     break;
