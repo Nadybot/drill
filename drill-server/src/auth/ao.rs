@@ -163,7 +163,7 @@ impl AoAuthProvider {
     ) -> Option<String> {
         if let Some((_, character_name)) = self.valid_tokens.remove(token) {
             match strategy {
-                SubdomainStrategy::AoCharacter => Some(character_name),
+                SubdomainStrategy::AoCharacter => Some(character_name.to_lowercase()),
                 SubdomainStrategy::ClientChoice => Some(desired_subdomain.to_string()),
                 SubdomainStrategy::Random => Some(random_subdomain()),
             }
