@@ -162,7 +162,7 @@ async fn run(mut args: args::Args) -> Result<(), Error> {
 }
 
 async fn proxy_read(mut read: OwnedReadHalf, id: String, msg_tx: UnboundedSender<Message>) {
-    let mut buffer = [0; 4096];
+    let mut buffer = [0; 16384];
 
     loop {
         let evt = match read.read(&mut buffer).await {

@@ -44,8 +44,7 @@ async fn handle_stream(state: State, mut stream: TcpStream, mut ip: IpAddr) -> i
     // websocket server at the "go" subdomain or to some other subdomain.
     // We will peek the data to see what the Host header is set to.
 
-    // More than 4KB of headers would be very weird.
-    let mut bytes = vec![0; 4096];
+    let mut bytes = vec![0; 16384];
 
     let host = loop {
         let n = stream.peek(&mut bytes).await?;
