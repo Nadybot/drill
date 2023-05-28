@@ -11,6 +11,11 @@ pub struct Args {
     #[arg(long, default_value_t = LevelFilter::Info)]
     pub log_level: LevelFilter,
 
+    /// Read buffer size. Bigger buffer size will use more memory, but issue
+    /// less syscalls.
+    #[arg(long, default_value_t = 16384)]
+    pub buffer_size: usize,
+
     /// Maximum parallel connected clients.
     #[arg(long, default_value_t = usize::MAX)]
     pub max_clients: usize,
