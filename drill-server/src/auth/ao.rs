@@ -33,7 +33,9 @@ async fn ao_bot_inner(
 
     loop {
         let packet = tokio::select! {
-            Ok(packet) = sock.read_packet() => packet,
+            maybe_packet = sock.read_packet() => {
+                maybe_packet?
+            },
             Some(token_tell) = token_rx.recv() => {
                 pending_tells.insert(token_tell.character.clone(), token_tell.token);
 
