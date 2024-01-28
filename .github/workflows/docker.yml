@@ -21,14 +21,12 @@ jobs:
         run: |
             echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
-      - name: Build Docker Image
+      - name: Build and push Docker Image
         run: |
             docker build \
-              -t drill-server:latest \
+              --tag "ghcr.io/${REPO}:latest" \
+              --tag "ghcr.io/${REPO}:latest-$(date +'%Y%m%d-%H%M%S')" \
+              --push \
+              --file Dockerfile \
               --build-arg FEATURES=dynamic,ao \
               .
-
-      - name: Push Docker Image
-        run: |
-            docker tag drill-server:latest ghcr.io/${REPO}:latest
-            docker push ghcr.io/${REPO}:latest
