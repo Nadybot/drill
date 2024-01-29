@@ -38,6 +38,8 @@ const HOST_NOT_UTF8: &[u8] =
 const HOST_NO_SUBDOMAIN: &[u8] =
     b"HTTP/1.1 400\r\nContent-Length: 28\r\n\r\nHost header has no subdomain";
 const NOT_FOUND: &[u8] = b"HTTP/1.1 404\r\nContent-Length: 0\r\n\r\n";
+const SERVICE_ALIVE: &[u8] =
+    b"HTTP/1.1 200\r\nContent-Length: 19\r\n\r\nDrill service alive";
 
 async fn handle_stream(state: State, mut stream: TcpStream, mut ip: IpAddr) -> io::Result<()> {
     // The first thing sent by a client MUST be a HTTP request - either to the
@@ -45,6 +47,7 @@ async fn handle_stream(state: State, mut stream: TcpStream, mut ip: IpAddr) -> i
     // We will peek the data to see what the Host header is set to.
 
     let mut bytes = vec![0; state.config.buffer_size];
+    let path: Option<&str>;
 
     let host = loop {
         let n = stream.peek(&mut bytes).await?;
@@ -59,6 +62,7 @@ async fn handle_stream(state: State, mut stream: TcpStream, mut ip: IpAddr) -> i
 
         match req.parse_with_uninit_headers(&bytes, &mut headers) {
             Ok(Status::Complete(_)) => {
+                path = req.path;
                 let host = req
                     .headers
                     .iter()
@@ -107,6 +111,10 @@ async fn handle_stream(state: State, mut stream: TcpStream, mut ip: IpAddr) -> i
     // Clients may connect either to a subdomain (i.e. require to be tunneled) or to
     // the websocket server.
     if host == state.config.websocket_host {
+        if path == Some("/livez") {
+            stream.write_all(SERVICE_ALIVE).await?;
+            return Ok(());
+        }
         if let Err(e) = handle_client(state, stream, ip).await {
             log::debug!("Error in websocket connection: {e}");
         };
