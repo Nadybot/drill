@@ -1,5 +1,7 @@
 use std::slice::SliceIndex;
 
+use bytes::{BufMut, BytesMut};
+
 /// The version of the protocol implemented by the crate.
 /// The first two bytes of the `Hello` [`Event`] must match this integer.
 const IMPLEMENTED_PROTO_VERSION: u16 = 1;
@@ -234,31 +236,31 @@ impl<'a> Event<'a> {
     }
 
     #[must_use]
-    pub fn serialize(&self) -> Vec<u8> {
+    pub fn serialize(&self) -> BytesMut {
         match self {
             Self::Hello {
                 proto_version,
                 auth_mode,
                 description,
             } => {
-                let mut serialized = Vec::with_capacity(4 + description.len());
-                serialized.push(HELLO);
-                serialized.extend_from_slice(&proto_version.to_be_bytes());
-                serialized.push(*auth_mode as u8);
+                let mut serialized = BytesMut::with_capacity(4 + description.len());
+                serialized.put_u8(HELLO);
+                serialized.put_u16(*proto_version);
+                serialized.put_u8(*auth_mode as u8);
                 serialized.extend_from_slice(description.as_bytes());
 
                 serialized
             }
             Self::AoAuth { character_name } => {
-                let mut serialized = Vec::with_capacity(1 + character_name.len());
-                serialized.push(AO_AUTH);
+                let mut serialized = BytesMut::with_capacity(1 + character_name.len());
+                serialized.put_u8(AO_AUTH);
                 serialized.extend_from_slice(character_name.as_bytes());
 
                 serialized
             }
             Self::TokenInAoTell { sender } => {
-                let mut serialized = Vec::with_capacity(1 + sender.len());
-                serialized.push(TOKEN_IN_AO_TELL);
+                let mut serialized = BytesMut::with_capacity(1 + sender.len());
+                serialized.put_u8(TOKEN_IN_AO_TELL);
                 serialized.extend_from_slice(sender.as_bytes());
 
                 serialized
@@ -267,40 +269,49 @@ impl<'a> Event<'a> {
                 token,
                 desired_subdomain,
             } => {
-                let mut serialized = Vec::with_capacity(37 + desired_subdomain.len());
-                serialized.push(PRESENT_TOKEN);
+                let mut serialized = BytesMut::with_capacity(37 + desired_subdomain.len());
+                serialized.put_u8(PRESENT_TOKEN);
                 serialized.extend_from_slice(token.as_bytes());
                 serialized.extend_from_slice(desired_subdomain.as_bytes());
 
                 serialized
             }
             Self::LetsGo { public_url } => {
-                let mut serialized = Vec::with_capacity(1 + public_url.len());
-                serialized.push(LETS_GO);
+                let mut serialized = BytesMut::with_capacity(1 + public_url.len());
+                serialized.put_u8(LETS_GO);
                 serialized.extend_from_slice(public_url.as_bytes());
 
                 serialized
             }
             Self::AuthFailed => {
-                vec![AUTH_FAILED]
+                let mut serialized = BytesMut::with_capacity(1);
+                serialized.put_u8(AUTH_FAILED);
+
+                serialized
             }
             Self::OutOfCapacity => {
-                vec![OUT_OF_CAPACITY]
+                let mut serialized = BytesMut::with_capacity(1);
+                serialized.put_u8(OUT_OF_CAPACITY);
+
+                serialized
             }
             Self::DisallowedPacket => {
-                vec![DISALLOWED_PACKET]
+                let mut serialized = BytesMut::with_capacity(1);
+                serialized.put_u8(DISALLOWED_PACKET);
+
+                serialized
             }
             Self::Data { id, data } => {
-                let mut serialized = Vec::with_capacity(37 + data.len());
-                serialized.push(DATA);
+                let mut serialized = BytesMut::with_capacity(37 + data.len());
+                serialized.put_u8(DATA);
                 serialized.extend_from_slice(id.as_bytes());
                 serialized.extend_from_slice(data);
 
                 serialized
             }
             Self::Closed { id } => {
-                let mut serialized = Vec::with_capacity(37);
-                serialized.push(CLOSED);
+                let mut serialized = BytesMut::with_capacity(37);
+                serialized.put_u8(CLOSED);
                 serialized.extend_from_slice(id.as_bytes());
 
                 serialized

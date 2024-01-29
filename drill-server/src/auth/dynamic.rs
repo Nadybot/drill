@@ -1,9 +1,15 @@
-use hyper::{body, client::HttpConnector, Body, Client, Method, Request, Uri};
+use bytes::Bytes;
+use http_body_util::{BodyExt, Empty};
+use hyper::{Method, Request, Uri};
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
+use hyper_util::{
+    client::legacy::{connect::HttpConnector, Client},
+    rt::TokioExecutor,
+};
 
 pub struct DynamicAuthProvider {
     api_endpoint: Uri,
-    client: Client<HttpsConnector<HttpConnector>>,
+    client: Client<HttpsConnector<HttpConnector>, Empty<Bytes>>,
 }
 
 impl DynamicAuthProvider {
@@ -16,7 +22,7 @@ impl DynamicAuthProvider {
 
         Self {
             api_endpoint,
-            client: Client::builder().build(connector),
+            client: Client::builder(TokioExecutor::new()).build(connector),
         }
     }
 
@@ -28,15 +34,15 @@ impl DynamicAuthProvider {
         let req = Request::builder()
             .method(Method::GET)
             .uri(uri)
-            .body(Body::empty())
+            .body(Empty::new())
             .unwrap();
 
         if let Ok(mut response) = self.client.request(req).await {
             let status = response.status();
 
             if status.is_success() {
-                if let Ok(subdomain_bytes) = body::to_bytes(response.body_mut()).await {
-                    if let Ok(subdomain) = String::from_utf8(subdomain_bytes.to_vec()) {
+                if let Ok(subdomain_bytes) = response.body_mut().collect().await {
+                    if let Ok(subdomain) = String::from_utf8(subdomain_bytes.to_bytes().to_vec()) {
                         Some(subdomain)
                     } else {
                         log::error!("Token verification endpoint returned invalid UTF-8");

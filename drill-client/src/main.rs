@@ -2,7 +2,7 @@ use std::{collections::HashMap, net::SocketAddr, str::FromStr};
 
 use clap::Parser;
 use drill_proto::{AuthMode, Event};
-use futures_util::SinkExt;
+use futures_util::{SinkExt, StreamExt};
 use http::{
     uri::{PathAndQuery, Scheme},
     Uri,
@@ -52,14 +52,13 @@ async fn run(mut args: args::Args) -> Result<(), Error> {
         args.drill = Uri::from_parts(parts).unwrap();
     }
 
-    let mut ws = tokio_websockets::ClientBuilder::from_uri(args.drill)
-        .fail_fast_on_invalid_utf8(false)
+    let (mut ws, _) = tokio_websockets::ClientBuilder::from_uri(args.drill)
         .connect()
         .await?;
 
     // Receive a Hello message
     let msg = ws.next().await.ok_or(Error::UnexpectedClose)??;
-    let hello = Event::deserialize(msg.as_data())?;
+    let hello = Event::deserialize(msg.as_payload())?;
 
     let token = match hello {
         Event::Hello {
@@ -103,7 +102,7 @@ async fn run(mut args: args::Args) -> Result<(), Error> {
         tokio::select! {
             Some(Ok(msg)) = ws.next() => {
                 let event = if msg.is_binary() || msg.is_text() {
-                    Event::deserialize(msg.as_data())?
+                    Event::deserialize(msg.as_payload())?
                 } else {
                     continue;
                 };

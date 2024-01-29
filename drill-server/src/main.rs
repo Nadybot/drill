@@ -7,10 +7,11 @@ use std::{
     time::Duration,
 };
 
+use bytes::Bytes;
 use clap::Parser;
 use config::Args;
 use drill_proto::{AuthMode, Event};
-use futures_util::SinkExt;
+use futures_util::{SinkExt, StreamExt};
 use httparse::Status;
 use libc::{c_int, sighandler_t, signal, SIGINT, SIGTERM};
 use state::State;
@@ -38,8 +39,7 @@ const HOST_NOT_UTF8: &[u8] =
 const HOST_NO_SUBDOMAIN: &[u8] =
     b"HTTP/1.1 400\r\nContent-Length: 28\r\n\r\nHost header has no subdomain";
 const NOT_FOUND: &[u8] = b"HTTP/1.1 404\r\nContent-Length: 0\r\n\r\n";
-const SERVICE_ALIVE: &[u8] =
-    b"HTTP/1.1 200\r\nContent-Length: 19\r\n\r\nDrill service alive";
+const SERVICE_ALIVE: &[u8] = b"HTTP/1.1 200\r\nContent-Length: 19\r\n\r\nDrill service alive";
 
 async fn handle_stream(state: State, mut stream: TcpStream, mut ip: IpAddr) -> io::Result<()> {
     // The first thing sent by a client MUST be a HTTP request - either to the
@@ -182,7 +182,6 @@ async fn handle_client(
     ip: IpAddr,
 ) -> Result<(), tokio_websockets::Error> {
     let mut ws = tokio_websockets::ServerBuilder::new()
-        .fail_fast_on_invalid_utf8(false)
         .accept(stream)
         .await?;
 
@@ -252,7 +251,7 @@ async fn handle_client(
 
                 log::trace!("Sending ping to websocket");
 
-                if ws.send(WebsocketMessage::ping("")).await.is_err() {
+                if ws.send(WebsocketMessage::ping(Bytes::new())).await.is_err() {
                     break;
                 };
                 i_am_waiting_for_pong = true;
@@ -266,7 +265,7 @@ async fn handle_client(
         }
 
         if msg.is_binary() || msg.is_text() {
-            let payload = msg.into_data();
+            let payload = msg.into_payload();
 
             if let Ok(evt) = Event::deserialize(&payload) {
                 match evt {
