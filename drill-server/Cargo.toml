@@ -17,7 +17,7 @@ httparse = "1.8"
 libc = "0.2"
 log = "0.4"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "time"] }
-tokio-websockets = { version = "0.5", default-features = false, features = ["server", "sha1_smol"] }
+tokio-websockets = { version = "0.7", default-features = false, features = ["server", "sha1_smol"] }
 uuid = { version = "1.3", features = ["v4"] }
 
 # Required for AO tell authentication
