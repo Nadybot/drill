@@ -13,4 +13,4 @@ futures-util = { version = "0.3", default-features = false, features = ["sink"] 
 http = "1"
 log = "0.4"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "time"] }
-tokio-websockets = { version = "0.5", default-features = false, features = ["client", "fastrand", "ring", "rustls-webpki-roots"] }
+tokio-websockets = { version = "0.8", default-features = false, features = ["client", "fastrand", "ring", "rustls-webpki-roots"] }
