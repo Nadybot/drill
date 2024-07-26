@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 bytes = "1"
 clap = { version = "4", default-features = false, features = ["derive", "help", "std", "usage"] }
-dashmap = "5.4"
+dashmap = "6.0"
 drill-proto = { path = "../drill-proto" }
 env_logger = { version = "0.11", default-features = false, features = ["humantime"] }
 fastrand = "2"
