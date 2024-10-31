@@ -110,6 +110,10 @@ async fn handle_stream(state: State, mut stream: TcpStream, mut ip: IpAddr) -> i
 
     // Clients may connect either to a subdomain (i.e. require to be tunneled) or to
     // the websocket server.
+    let host = match host.rsplit_once(":") {
+        Some((host, _port)) => host,
+        None => host,
+    };
     if host == state.config.websocket_host {
         if path == Some("/livez") {
             stream.write_all(SERVICE_ALIVE).await?;
